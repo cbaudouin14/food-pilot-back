@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import executeQuery from '../../shared/db';
 
-const router = Router();
+const http = Router();
 
 // Route GET /get-users
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+http.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const query = 'SELECT * FROM users'; // Requête SQL
     // const users = await executeQuery(query);
@@ -16,4 +16,10 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-export default router;
+http.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  // renvoyer l'utilisateur par id
+  res.json({ id, name: 'Alice' });
+});
+
+export default http;

@@ -1,29 +1,53 @@
+// src/app.ts
 import express, { Application } from 'express';
 import fs from 'fs';
 import path from 'path';
 
 const app: Application = express();
+
+// Middleware pour parser le JSON
 app.use(express.json());
 
-// Chemin vers le dossier des routes
+// Charger automatiquement toutes les routes dans src/http
 const routesPath = path.join(__dirname, 'http');
 
-if (fs.existsSync(routesPath)) {
-  fs.readdirSync(routesPath).forEach((folder) => {
-    const routeDir = path.join(routesPath, folder);
-    if (fs.statSync(routeDir).isDirectory()) {
-      // Utilise .ts en dev, .js en prod
-      const ext = fs.existsSync(path.join(routeDir, 'index.js')) ? 'js' : 'ts';
-      const routeFile = path.join(routeDir, `index.${ext}`);
-      if (fs.existsSync(routeFile)) {
+fs.readdirSync(routesPath).forEach((folder) => {
+  const routeDir = path.join(routesPath, folder);
+  const stat = fs.statSync(routeDir);
+
+  if (stat.isDirectory()) {
+    const routeFile = path.join(routeDir, 'index.ts');
+    if (fs.existsSync(routeFile)) {
+      try {
+        // Import synchrone pour éviter les problèmes d'asynchronisme
         const routeModule = require(routeFile).default;
-        app.use(`/${folder}`, routeModule);
-        console.log(`Route /${folder} chargée`);
+
+        // -- DETECTION DE MÉTHODE ET NOM DE ROUTE --
+        const methodMatch = folder.match(/^(get|post|put|delete)-/);
+        let routeName = folder;
+        let httpMethod = 'use'; // par défaut middleware
+
+        if (methodMatch) {
+          const method = methodMatch[1];      
+          routeName = folder.replace(`${method}-`, ''); // get-users → users
+          httpMethod = method.toLowerCase();  
+        }
+
+        // -- TRANSFORMATION DES PARAMS DYNAMIQUES --
+        // Si le dossier contient "id" → remplacer par :id
+        // Ex : get-user-id → user/:id
+        routeName = routeName.replace(/-id$/, '/:id'); 
+        routeName = routeName.replace(/-/g, '/'); // get-user-profile → user/profile
+
+        // Monter la route sur Express
+        app.use(`/${routeName}`, routeModule);
+        console.log(`Route /${routeName} chargée (${httpMethod.toUpperCase()})`);
+
+      } catch (err) {
+        console.error(`Erreur en important la route /${folder}:`, err);
       }
     }
-  });
-} else {
-  console.warn(`Dossier des routes introuvable: ${routesPath}`);
-}
+  }
+});
 
 export default app;
