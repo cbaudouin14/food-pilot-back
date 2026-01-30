@@ -1,5 +1,6 @@
 // src/app.ts
 import express, { Application } from 'express';
+import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 
@@ -7,6 +8,11 @@ const app: Application = express();
 
 // Middleware pour parser le JSON
 app.use(express.json());
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}))
 
 // Charger automatiquement toutes les routes dans src/http
 const routesPath = path.join(__dirname, 'http');

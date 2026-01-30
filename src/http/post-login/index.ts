@@ -26,7 +26,14 @@ http.post('/', async (req: Request, res: Response) => {
       expiresIn: '1h',
     });
 
-    res.json({ token, user: { userID: user.userID, lastname: user.lastname, firstname: user.firstname, email: user.email } });
+    res.cookie('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      maxAge: 3600 * 1000
+    })
+
+    res.status(200).json({message : 'Login successful'});
   } catch (error) {
     console.error('Error login:', error);
     res.status(500).json({ message: 'Error server' });
