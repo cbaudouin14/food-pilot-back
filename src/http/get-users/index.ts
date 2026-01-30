@@ -1,25 +1,32 @@
 import { Router, Request, Response } from 'express';
+import { auth } from '../../utils/auth';
 import executeQuery from '../../shared/db';
 
 const http = Router();
 
-// Route GET /get-users
-http.get('/', async (req: Request, res: Response): Promise<void> => {
+// Route GET /users
+http.get('/', auth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const query = 'SELECT * FROM users'; // Requête SQL
-    // const users = await executeQuery(query);
-    const users = ["Alice", "Bob"];
-    res.status(200).json(users); // Renvoie les résultats
+    const query = 'SELECT userID, lastname, firstname, email FROM users';
+    const users = await executeQuery(query);
+    res.status(200).json(users);
   } catch (error) {
-    console.error('Erreur get-users:', error);
-    res.status(500).json({ message: 'Erreur lors de la récupération des utilisateurs' });
+    res.status(500).json({ message: 'Error retrieving users' });
   }
 });
 
-http.get('/:id', async (req, res) => {
-  const { id } = req.params;
-  // renvoyer l'utilisateur par id
-  res.json({ id, name: 'Alice' });
+// Route GET /users/{id}
+http.get('/:userID', auth, async (req, res) => {
+  try {
+    const { userID } = req.params;  
+    const query = 'SELECT userID, lastname, firstname, email FROM users WHERE userID = ?';
+    const users = await executeQuery(query, [userID]);
+    res.status(200).json(users);
+  } catch(error) {
+    console.error('Erreur get-users:', error);
+    res.status(500).json({ message: "Error retrieving user" });
+  }
+  
 });
 
 export default http;
