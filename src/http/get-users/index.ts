@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { auth } from '../../utils/auth';
 import executeQuery from '../../shared/db';
+import { authenticateToken, requireAdmin, AuthRequest } from '../../utils/middleware';
 
 const http = Router();
 
 // Route GET /users
-http.get('/', auth, async (req: Request, res: Response): Promise<void> => {
+http.get('/', authenticateToken, requireAdmin,  async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const query = 'SELECT userID, lastname, firstname, email FROM users';
+    const query = 'SELECT userID, lastname, firstname, email, role, restaurant_id FROM users';
     const users = await executeQuery(query);
     res.status(200).json(users);
   } catch (error) {
@@ -16,11 +16,16 @@ http.get('/', auth, async (req: Request, res: Response): Promise<void> => {
 });
 
 // Route GET /users/{id}
-http.get('/:userID', auth, async (req, res) => {
+http.get('/:userID', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
   try {
     const { userID } = req.params;  
     const query = 'SELECT userID, lastname, firstname, email FROM users WHERE userID = ?';
     const users = await executeQuery(query, [userID]);
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     res.status(200).json(users);
   } catch(error) {
     console.error('Erreur get-users:', error);
